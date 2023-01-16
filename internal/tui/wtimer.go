@@ -80,6 +80,76 @@ func (m *model) Init() tea.Cmd {
 }
 
 func (m *model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
+	cmds := []tea.Cmd{}
+	switch msg := msg.(type) {
+	case tea.KeyMsg:
+		switch {
+		case key.Matches(msg, m.keymap.quit):
+			m.quitting = true
+			return m, tea.Quit
+		case key.Matches(msg, m.keymap.reset):
+			return m, m.reset()
+		case key.Matches(msg, m.keymap.start, m.keymap.stop):
+			return m, m.toggle()
+		}
+	case tea.WindowSizeMsg:
+		m.progress.Width = msg.Width - padding*2 - 4
+		if m.progress.Width > maxWidth {
+			m.progress.Width = maxWidth
+		}
+		return m, nil
+	case tickMsg:
+		if m.progress.Percent() == 1.0 {
+			cmds = append(cmds, m.onComplete())
+		} else {
+			totalTime := workTime
+			if m.state == breakState {
+				totalTime = breakTime
+			}
+
+			cmds = append(cmds, m.progress.IncrPercent(calcPercent(m.stopwatch.Elapsed()-m.lastElasped, totalTime)))
+		}
+		m.lastElasped = m.stopwatch.Elapsed()
+
+		cmds = append(cmds, tickCmd())
+	case progress.FrameMsg:
+		progressModel, cmd := m.progress.Update(msg)
+		m.progress = progressModel.(progress.Model)
+		cmds = append(cmds, cmd)
+		return m, cmd
+	}
+
+	var cmd tea.Cmd
+	m.stopwatch, cmd = m.stopwatch.Update(msg)
+	cmds = append(cmds, cmd)
+
+	return m, tea.Batch(cmds...)
+}
+
+func (m *model) onComplete() tea.Cmd {
+	cmds := []tea.Cmd{}
+	cmds = append(cmds, m.progress.SetPercent(0))
+	cmds = append(cmds, m.reset())
+	if m.state == workState {
+		m.state = breakState
+	} else {
+		m.state = workState
+	}
+	return tea.Batch(cmds...)
+}
+
+func (m *model) toggle() tea.Cmd {
+	m.keymap.stop.SetEnabled(!m.stopwatch.Running())
+	m.keymap.start.SetEnabled(m.stopwatch.Running())
+	return m.stopwatch.Toggle()
+}
+
+func (m *model) reset() tea.Cmd {
+	m.lastElasped = 0
+	return m.stopwatch.Reset()
+}
+
+/*
 	switch msg := msg.(type) {
 	case tea.KeyMsg:
 		switch {
@@ -136,8 +206,7 @@ func (m *model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 	var cmd tea.Cmd
 	m.stopwatch, cmd = m.stopwatch.Update(msg)
-	return m, cmd
-}
+*/
 
 func (m model) View() string {
 	pad := strings.Repeat(" ", padding)
