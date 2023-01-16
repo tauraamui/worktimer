@@ -29,6 +29,7 @@ type model struct {
 	state                       state
 	workDuration, breakDuration time.Duration
 	workEmoticon, breakEmoticon string
+	messageStatusPrefix         string
 	progress                    progress.Model
 	stopwatch                   stopwatch.Model
 	lastElasped                 time.Duration
@@ -48,15 +49,17 @@ type keymap struct {
 func InitWTimer(
 	workDuration, breakDuration time.Duration,
 	workEmoticon, breakEmoticon string,
+	messageStatusPrefix string,
 ) tea.Model {
 	m := model{
-		state:         workState,
-		workDuration:  workDuration,
-		breakDuration: breakDuration,
-		workEmoticon:  workEmoticon,
-		breakEmoticon: breakEmoticon,
-		progress:      progress.New(progress.WithDefaultGradient()),
-		stopwatch:     stopwatch.NewWithInterval(time.Second),
+		state:               workState,
+		workDuration:        workDuration,
+		breakDuration:       breakDuration,
+		workEmoticon:        workEmoticon,
+		breakEmoticon:       breakEmoticon,
+		messageStatusPrefix: messageStatusPrefix,
+		progress:            progress.New(progress.WithDefaultGradient()),
+		stopwatch:           stopwatch.NewWithInterval(time.Second),
 		keymap: keymap{
 			start: key.NewBinding(
 				key.WithKeys("s"),
@@ -176,7 +179,8 @@ func (m model) View() string {
 	b.WriteString(pad)
 	b.WriteString("\n")
 	b.WriteString(pad)
-	b.WriteString("We are currently")
+	b.WriteString(m.messageStatusPrefix)
+
 	if m.state == workState {
 		b.WriteString(" working... ")
 		b.WriteString(m.workEmoticon)
@@ -185,6 +189,7 @@ func (m model) View() string {
 		b.WriteString(" on a break... ")
 		b.WriteString(m.breakEmoticon)
 	}
+
 	b.WriteString("\n\n")
 	b.WriteString(pad)
 	b.WriteString(m.progress.View())
