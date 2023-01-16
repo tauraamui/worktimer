@@ -146,8 +146,13 @@ func (m model) View() string {
 	if !m.quitting {
 		b.WriteString("\n\n")
 		b.WriteString(pad)
-		b.WriteString("Elapsed: ")
 		b.WriteString(s)
+		b.WriteString("/")
+		if m.state == workState {
+			b.WriteString(workTime.String())
+		} else {
+			b.WriteString(breakTime.String())
+		}
 		b.WriteString("\n")
 		b.WriteString(m.helpView())
 	}
