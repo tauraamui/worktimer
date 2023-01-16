@@ -1,7 +1,18 @@
 package main
 
-import "github.com/tauraamui/worktimer/internal/tui"
+import (
+	"flag"
+	"time"
+
+	"github.com/tauraamui/worktimer/internal/tui"
+)
+
+var (
+	workDuration  = flag.Duration("wd", 45*time.Minute, "work duration")
+	breakDuration = flag.Duration("bd", 15*time.Minute, "break duration")
+)
 
 func main() {
-	tui.StartTea()
+	flag.Parse()
+	tui.StartTea(*workDuration, *breakDuration)
 }

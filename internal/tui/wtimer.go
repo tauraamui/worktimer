@@ -12,10 +12,8 @@ import (
 )
 
 const (
-	padding   = 2
-	maxWidth  = 65
-	workTime  = time.Minute * 45
-	breakTime = time.Minute * 15
+	padding  = 2
+	maxWidth = 65
 )
 
 type tickMsg time.Time
@@ -28,13 +26,14 @@ const (
 )
 
 type model struct {
-	state       state
-	progress    progress.Model
-	stopwatch   stopwatch.Model
-	lastElasped time.Duration
-	keymap      keymap
-	help        help.Model
-	quitting    bool
+	state                       state
+	workDuration, breakDuration time.Duration
+	progress                    progress.Model
+	stopwatch                   stopwatch.Model
+	lastElasped                 time.Duration
+	keymap                      keymap
+	help                        help.Model
+	quitting                    bool
 }
 
 type keymap struct {
@@ -45,11 +44,13 @@ type keymap struct {
 	quit key.Binding
 }
 
-func InitWTimer() tea.Model {
+func InitWTimer(workDuration, breakDuration time.Duration) tea.Model {
 	m := model{
-		state:     workState,
-		progress:  progress.New(progress.WithDefaultGradient()),
-		stopwatch: stopwatch.NewWithInterval(time.Second),
+		state:         workState,
+		workDuration:  workDuration,
+		breakDuration: breakDuration,
+		progress:      progress.New(progress.WithDefaultGradient()),
+		stopwatch:     stopwatch.NewWithInterval(time.Second),
 		keymap: keymap{
 			start: key.NewBinding(
 				key.WithKeys("s"),
@@ -86,9 +87,9 @@ func (m *model) Init() tea.Cmd {
 }
 
 func (m *model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
-	totalTime := workTime
+	totalTime := m.workDuration
 	if m.state == breakState {
-		totalTime = breakTime
+		totalTime = m.breakDuration
 	}
 
 	cmds := []tea.Cmd{}
@@ -187,9 +188,9 @@ func (m model) View() string {
 		b.WriteString(s)
 		b.WriteString("/")
 		if m.state == workState {
-			b.WriteString(workTime.String())
+			b.WriteString(m.workDuration.String())
 		} else {
-			b.WriteString(breakTime.String())
+			b.WriteString(m.breakDuration.String())
 		}
 		b.WriteString("\n\n")
 		b.WriteString(pad)

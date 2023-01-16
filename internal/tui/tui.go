@@ -3,12 +3,13 @@ package tui
 import (
 	"fmt"
 	"os"
+	"time"
 
 	tea "github.com/charmbracelet/bubbletea"
 )
 
-func StartTea() {
-	p := tea.NewProgram(InitWTimer(), tea.WithAltScreen())
+func StartTea(workDuration, breakDuration time.Duration) {
+	p := tea.NewProgram(InitWTimer(workDuration, breakDuration), tea.WithAltScreen())
 	if _, err := p.Run(); err != nil {
 		fmt.Printf("error running program: %s", err)
 		os.Exit(1)
