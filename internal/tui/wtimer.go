@@ -12,13 +12,23 @@ import (
 )
 
 const (
-	padding  = 2
-	maxWidth = 65
+	padding   = 2
+	maxWidth  = 65
+	workTime  = time.Second * 20
+	breakTime = time.Second * 5
 )
 
 type tickMsg time.Time
 
+type state int
+
+const (
+	workState = iota
+	breakState
+)
+
 type model struct {
+	state     state
 	progress  progress.Model
 	stopwatch stopwatch.Model
 	keymap    keymap
@@ -35,6 +45,7 @@ type keymap struct {
 
 func InitWTimer() tea.Model {
 	m := model{
+		state:     workState,
 		progress:  progress.New(progress.WithDefaultGradient()),
 		stopwatch: stopwatch.NewWithInterval(time.Second),
 		keymap: keymap{
@@ -88,12 +99,20 @@ func (m *model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		}
 		return m, nil
 	case tickMsg:
+		cmds := []tea.Cmd{}
 		if m.progress.Percent() == 1.0 {
 			m.progress.SetPercent(0)
+			if m.state == workState {
+				m.state = breakState
+			} else {
+				m.state = workState
+			}
+			cmds = append(cmds, m.stopwatch.Reset())
 		}
 
-		cmd := m.progress.IncrPercent(0.25)
-		return m, tea.Batch(tickCmd(), cmd)
+		cmds = append(cmds, m.progress.IncrPercent(calcPercent(m.stopwatch.Elapsed(), workTime)))
+		cmds = append(cmds, tickCmd())
+		return m, tea.Batch(cmds...)
 	case progress.FrameMsg:
 		progressModel, cmd := m.progress.Update(msg)
 		m.progress = progressModel.(progress.Model)
@@ -112,7 +131,13 @@ func (m model) View() string {
 	b.WriteString(pad)
 	b.WriteString("\n")
 	b.WriteString(pad)
-	b.WriteString("We are currently working...")
+	b.WriteString("We are currently")
+	if m.state == workState {
+		b.WriteString(" working...")
+	}
+	if m.state == breakState {
+		b.WriteString(" on a break...")
+	}
 	b.WriteString("\n\n")
 	b.WriteString(pad)
 	b.WriteString(m.progress.View())
@@ -147,4 +172,8 @@ func tickCmd() tea.Cmd {
 	return tea.Tick(time.Second*1, func(t time.Time) tea.Msg {
 		return tickMsg(t)
 	})
+}
+
+func calcPercent(cd, td time.Duration) float64 {
+	return 0.25
 }
