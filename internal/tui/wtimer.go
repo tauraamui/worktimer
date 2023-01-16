@@ -80,6 +80,11 @@ func (m *model) Init() tea.Cmd {
 }
 
 func (m *model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
+	totalTime := workTime
+	if m.state == breakState {
+		totalTime = breakTime
+	}
+
 	cmds := []tea.Cmd{}
 	switch msg := msg.(type) {
 	case tea.KeyMsg:
@@ -99,14 +104,9 @@ func (m *model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		}
 		return m, nil
 	case tickMsg:
-		if m.progress.Percent() == 1.0 {
+		if m.stopwatch.Elapsed() >= totalTime && m.progress.Percent() == 1.0 {
 			cmds = append(cmds, m.onComplete())
 		} else {
-			totalTime := workTime
-			if m.state == breakState {
-				totalTime = breakTime
-			}
-
 			cmds = append(cmds, m.progress.IncrPercent(calcPercent(m.stopwatch.Elapsed()-m.lastElasped, totalTime)))
 		}
 		m.lastElasped = m.stopwatch.Elapsed()
@@ -119,11 +119,15 @@ func (m *model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		return m, cmd
 	}
 
-	var cmd tea.Cmd
-	m.stopwatch, cmd = m.stopwatch.Update(msg)
-	cmds = append(cmds, cmd)
+	cmds = append(cmds, m.defaultUpdate(msg))
 
 	return m, tea.Batch(cmds...)
+}
+
+func (m *model) defaultUpdate(msg tea.Msg) tea.Cmd {
+	var cmd tea.Cmd
+	m.stopwatch, cmd = m.stopwatch.Update(msg)
+	return cmd
 }
 
 func (m *model) onComplete() tea.Cmd {
@@ -148,65 +152,6 @@ func (m *model) reset() tea.Cmd {
 	m.lastElasped = 0
 	return m.stopwatch.Reset()
 }
-
-/*
-	switch msg := msg.(type) {
-	case tea.KeyMsg:
-		switch {
-		case key.Matches(msg, m.keymap.quit):
-			m.quitting = true
-			return m, tea.Quit
-		case key.Matches(msg, m.keymap.reset):
-			m.lastElasped = 0
-			return m, m.stopwatch.Reset()
-		case key.Matches(msg, m.keymap.start, m.keymap.stop):
-			m.keymap.stop.SetEnabled(!m.stopwatch.Running())
-			m.keymap.start.SetEnabled(m.stopwatch.Running())
-			return m, m.stopwatch.Toggle()
-		}
-	case tea.WindowSizeMsg:
-		m.progress.Width = msg.Width - padding*2 - 4
-		if m.progress.Width > maxWidth {
-			m.progress.Width = maxWidth
-		}
-		return m, nil
-	case tickMsg:
-		cmds := []tea.Cmd{}
-		if m.progress.Percent() == 1.0 {
-			m.progress.SetPercent(0)
-			if m.state == workState {
-				m.state = breakState
-			} else {
-				m.state = workState
-			}
-			cmds = append(cmds, m.stopwatch.Reset())
-			cmds = append(cmds, m.progress.SetPercent(0))
-			var cmd tea.Cmd
-			progressModel, cmd := m.progress.Update(msg)
-			m.progress = progressModel.(progress.Model)
-			cmds = append(cmds, cmd)
-			m.lastElasped = 0
-			return m, tea.Batch(cmds...)
-		}
-
-		totalTime := workTime
-		if m.state == breakState {
-			totalTime = breakTime
-		}
-
-		cmds = append(cmds, m.progress.IncrPercent(calcPercent(m.stopwatch.Elapsed()-m.lastElasped, totalTime)))
-		m.lastElasped = m.stopwatch.Elapsed()
-		cmds = append(cmds, tickCmd())
-		return m, tea.Batch(cmds...)
-	case progress.FrameMsg:
-		progressModel, cmd := m.progress.Update(msg)
-		m.progress = progressModel.(progress.Model)
-		return m, cmd
-	}
-
-	var cmd tea.Cmd
-	m.stopwatch, cmd = m.stopwatch.Update(msg)
-*/
 
 func (m model) View() string {
 	pad := strings.Repeat(" ", padding)
@@ -258,7 +203,7 @@ func (m model) helpView() string {
 }
 
 func tickCmd() tea.Cmd {
-	return tea.Tick(time.Second*1, func(t time.Time) tea.Msg {
+	return tea.Tick(time.Millisecond*100, func(t time.Time) tea.Msg {
 		return tickMsg(t)
 	})
 }
