@@ -28,12 +28,13 @@ const (
 )
 
 type model struct {
-	state     state
-	progress  progress.Model
-	stopwatch stopwatch.Model
-	keymap    keymap
-	help      help.Model
-	quitting  bool
+	state       state
+	progress    progress.Model
+	stopwatch   stopwatch.Model
+	lastElasped time.Duration
+	keymap      keymap
+	help        help.Model
+	quitting    bool
 }
 
 type keymap struct {
@@ -86,6 +87,7 @@ func (m *model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			m.quitting = true
 			return m, tea.Quit
 		case key.Matches(msg, m.keymap.reset):
+			m.lastElasped = 0
 			return m, m.stopwatch.Reset()
 		case key.Matches(msg, m.keymap.start, m.keymap.stop):
 			m.keymap.stop.SetEnabled(!m.stopwatch.Running())
@@ -108,9 +110,22 @@ func (m *model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				m.state = workState
 			}
 			cmds = append(cmds, m.stopwatch.Reset())
+			cmds = append(cmds, m.progress.SetPercent(0))
+			var cmd tea.Cmd
+			progressModel, cmd := m.progress.Update(msg)
+			m.progress = progressModel.(progress.Model)
+			cmds = append(cmds, cmd)
+			m.lastElasped = 0
+			return m, tea.Batch(cmds...)
 		}
 
-		cmds = append(cmds, m.progress.IncrPercent(calcPercent(m.stopwatch.Elapsed(), workTime)))
+		totalTime := workTime
+		if m.state == breakState {
+			totalTime = breakTime
+		}
+
+		cmds = append(cmds, m.progress.IncrPercent(calcPercent(m.stopwatch.Elapsed()-m.lastElasped, totalTime)))
+		m.lastElasped = m.stopwatch.Elapsed()
 		cmds = append(cmds, tickCmd())
 		return m, tea.Batch(cmds...)
 	case progress.FrameMsg:
@@ -154,6 +169,7 @@ func (m model) View() string {
 			b.WriteString(breakTime.String())
 		}
 		b.WriteString("\n")
+		b.WriteString(pad)
 		b.WriteString(m.helpView())
 	}
 
@@ -179,6 +195,6 @@ func tickCmd() tea.Cmd {
 	})
 }
 
-func calcPercent(cd, td time.Duration) float64 {
-	return 0.25
+func calcPercent(part, total time.Duration) float64 {
+	return float64(part) / float64(total)
 }

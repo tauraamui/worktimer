@@ -5,6 +5,7 @@ go 1.19
 require (
 	github.com/charmbracelet/bubbles v0.14.0
 	github.com/charmbracelet/bubbletea v0.23.1
+	github.com/matryer/is v1.4.0
 )
 
 require (
