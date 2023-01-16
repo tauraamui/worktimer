@@ -14,8 +14,8 @@ import (
 const (
 	padding   = 2
 	maxWidth  = 65
-	workTime  = time.Second * 45
-	breakTime = time.Second * 15
+	workTime  = time.Minute * 45
+	breakTime = time.Minute * 15
 )
 
 type tickMsg time.Time
