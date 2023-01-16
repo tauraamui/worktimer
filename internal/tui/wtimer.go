@@ -168,7 +168,7 @@ func (m model) View() string {
 		} else {
 			b.WriteString(breakTime.String())
 		}
-		b.WriteString("\n")
+		b.WriteString("\n\n")
 		b.WriteString(pad)
 		b.WriteString(m.helpView())
 	}
@@ -178,7 +178,6 @@ func (m model) View() string {
 
 func (m model) helpView() string {
 	var b strings.Builder
-	b.WriteString("\n")
 	b.WriteString(m.help.ShortHelpView([]key.Binding{
 		m.keymap.start,
 		m.keymap.stop,
