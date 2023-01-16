@@ -14,8 +14,8 @@ import (
 const (
 	padding   = 2
 	maxWidth  = 65
-	workTime  = time.Second * 20
-	breakTime = time.Second * 5
+	workTime  = time.Second * 45
+	breakTime = time.Second * 15
 )
 
 type tickMsg time.Time
@@ -150,6 +150,7 @@ func (m *model) toggle() tea.Cmd {
 
 func (m *model) reset() tea.Cmd {
 	m.lastElasped = 0
+	m.progress.SetPercent(0)
 	return m.stopwatch.Reset()
 }
 
