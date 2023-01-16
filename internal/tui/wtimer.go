@@ -162,10 +162,10 @@ func (m model) View() string {
 	b.WriteString(pad)
 	b.WriteString("We are currently")
 	if m.state == workState {
-		b.WriteString(" working...")
+		b.WriteString(" working... 🤫")
 	}
 	if m.state == breakState {
-		b.WriteString(" on a break...")
+		b.WriteString(" on a break... 🍿")
 	}
 	b.WriteString("\n\n")
 	b.WriteString(pad)
