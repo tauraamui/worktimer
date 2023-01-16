@@ -40,6 +40,7 @@ type model struct {
 type keymap struct {
 	start,
 	stop,
+	toggle,
 	reset,
 	quit key.Binding
 }
@@ -53,10 +54,15 @@ func InitWTimer() tea.Model {
 			start: key.NewBinding(
 				key.WithKeys("s"),
 				key.WithHelp("s", "start"),
+				key.WithDisabled(),
 			),
 			stop: key.NewBinding(
 				key.WithKeys("s"),
 				key.WithHelp("s", "stop"),
+			),
+			toggle: key.NewBinding(
+				key.WithKeys("t"),
+				key.WithHelp("t", "toggle mode"),
 			),
 			reset: key.NewBinding(
 				key.WithKeys("r"),
@@ -95,7 +101,9 @@ func (m *model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		case key.Matches(msg, m.keymap.reset):
 			return m, m.reset()
 		case key.Matches(msg, m.keymap.start, m.keymap.stop):
-			return m, m.toggle()
+			return m, m.toggleRunning()
+		case key.Matches(msg, m.keymap.toggle):
+			return m, m.onComplete()
 		}
 	case tea.WindowSizeMsg:
 		m.progress.Width = msg.Width - padding*2 - 4
@@ -142,7 +150,7 @@ func (m *model) onComplete() tea.Cmd {
 	return tea.Batch(cmds...)
 }
 
-func (m *model) toggle() tea.Cmd {
+func (m *model) toggleRunning() tea.Cmd {
 	m.keymap.stop.SetEnabled(!m.stopwatch.Running())
 	m.keymap.start.SetEnabled(m.stopwatch.Running())
 	return m.stopwatch.Toggle()
@@ -196,6 +204,7 @@ func (m model) helpView() string {
 	b.WriteString(m.help.ShortHelpView([]key.Binding{
 		m.keymap.start,
 		m.keymap.stop,
+		m.keymap.toggle,
 		m.keymap.reset,
 		m.keymap.quit,
 	}))
